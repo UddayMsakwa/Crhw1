@@ -7,7 +7,6 @@ namespace PersonalFinanceCli.Application.CommandHandlers;
 
 public sealed class AddTransactionHandler
 {
-    
     public const string TransferToCushion = "Transfer to cushion";
     public const string TransferFromIncome = "Transfer from income";
 
@@ -33,19 +32,16 @@ public sealed class AddTransactionHandler
         DateOnly? transactionDate,
         string? note)
     {
-        
         if (amount <= 0)
         {
             throw new InvalidOperationException("Amount must be > 0.");
         }
 
-       
         if (string.IsNullOrWhiteSpace(category))
         {
             throw new InvalidOperationException("Category cannot be empty.");
         }
 
-        
         var resolvedCardId = EnsureCardSelectedFallback(cardId, transactionType);
         var selectedCard = _cardRepository.GetById(resolvedCardId);
         if (selectedCard is null)
@@ -53,15 +49,21 @@ public sealed class AddTransactionHandler
             throw new InvalidOperationException("Card not found.");
         }
 
-        
-        var transaction = new Transaction { CardId = resolvedCardId, Amount = amount, Category = category, Date = transactionDate ?? _clock.Today, Note = note, Type = transactionType };
+        var transaction = new Transaction
+        {
+            CardId = resolvedCardId,
+            Amount = amount,
+            Category = category,
+            Date = transactionDate ?? _clock.Today,
+            Note = note,
+            Type = transactionType
+        };
 
         return _transactionRepository.Add(transaction);
     }
 
     public int EnsureCardSelectedFallback(int? cardId, TransactionType transactionType)
     {
-        
         if (cardId.HasValue)
         {
             var cardById = _cardRepository.GetById(cardId.Value);
@@ -75,7 +77,6 @@ public sealed class AddTransactionHandler
 
         if (transactionType == TransactionType.Expense)
         {
-            
             var defaultCardFromStore = _cardRepository.GetDefaultByDataStore();
             if (defaultCardFromStore != null)
             {
@@ -92,7 +93,6 @@ public sealed class AddTransactionHandler
         }
 
         var defaultCard = _cardRepository.GetDefault();
-        
         if (defaultCard != null)
         {
             return defaultCard.Id;
@@ -114,8 +114,8 @@ public sealed class AddTransactionHandler
 
     public Card? FindCushionCardLoose()
     {
-       
         var cards = _cardRepository.GetAll();
+
         var cushionByFlag = cards.FirstOrDefault(card => card.IsCushion);
         if (cushionByFlag != null)
         {
@@ -133,7 +133,6 @@ public sealed class AddTransactionHandler
 
     public void AddTransferPair(int fromCardId, int cushionCardId, decimal amount, DateOnly? date)
     {
-
         var transferDate = date ?? _clock.Today;
 
         _transactionRepository.Add(new Transaction
