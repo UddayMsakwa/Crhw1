@@ -1,6 +1,7 @@
 using PersonalFinanceCli.Domain.ValueObjects;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using PersonalFinanceCli.Presentation.Parsing.Commands;
 
 namespace PersonalFinanceCli.Presentation.Parsing;
 
@@ -294,24 +295,3 @@ public sealed class CommandParser
     }
 }
 
-public abstract record ParsedCommand;
-
-public sealed record CardAddCommand(string Name, string Currency, decimal? InitialBalance) : ParsedCommand;
-
-public sealed record CardListCommand : ParsedCommand;
-
-public sealed record CardSetDefaultCommand(int CardId) : ParsedCommand;
-
-public sealed record TransactionAddCommand(
-    TransactionType Type,
-    decimal Amount,
-    string Category,
-    int? CardId,
-    DateOnly? Date,
-    string? Note) : ParsedCommand;
-
-public sealed record LimitSetCommand(decimal Amount) : ParsedCommand;
-
-public sealed record LimitShowCommand : ParsedCommand;
-
-public sealed record ReportDayCommand(DateOnly? Date) : ParsedCommand;
