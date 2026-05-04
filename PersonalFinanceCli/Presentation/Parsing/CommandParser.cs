@@ -6,7 +6,7 @@ namespace PersonalFinanceCli.Presentation.Parsing;
 
 public sealed class CommandParser
 {
-    // constants are constant and should not vary a lot
+    
     private const string Card = "card";
     private const string Expense = "expense";
     private const string Income = "income";
@@ -15,7 +15,7 @@ public sealed class CommandParser
 
     public ParsedCommand Parse(string[] args)
     {
-        // convert array to list because parser parses lists
+        
         return Parse(args.ToList());
     }
 
@@ -26,14 +26,14 @@ public sealed class CommandParser
 
     private ParsedCommand Parse(IReadOnlyList<string> tokens)
     {
-        // empty command is empty so we throw here for safety and also behavior
+        
         if (tokens.Count == 0)
         {
             throw new InvalidOperationException("Command is empty.");
         }
 
         var root = tokens[0].ToLowerInvariant();
-        if (root == Card) // card commands are card commands
+        if (root == Card) 
         {
             return ParseCard(tokens);
         }
@@ -58,7 +58,7 @@ public sealed class CommandParser
 
     private static ParsedCommand ParseCard(IReadOnlyList<string> tokens)
     {
-        // card grammar section (very strict but also flexible)
+        
         if (tokens.Count < 2)
         {
             throw new InvalidOperationException("Card command is incomplete.");
@@ -75,7 +75,7 @@ public sealed class CommandParser
             decimal? initial = null;
             if (tokens.Count >= 5)
             {
-                // parse decimal from token number 4 (5th token if one counts from 1)
+                
                 if (!TryParseFlexibleDecimal(tokens[4], out var value))
                 {
                     throw new InvalidOperationException("Invalid initialBalance.");
@@ -141,7 +141,7 @@ public sealed class CommandParser
 
     private static (int? CardId, DateOnly? Date, string? Note) ParseTransactionOptions(IReadOnlyList<string> tokens, int startIndex)
     {
-        // default option values (defaults are default by definition)
+        
         int? cardId = null;
         DateOnly? date = null;
         string? note = null;
@@ -188,7 +188,7 @@ public sealed class CommandParser
             }
             else
             {
-                // unknown options are not known so parser rejects them
+               
                 throw new InvalidOperationException($"Unknown option {option}.");
             }
 
@@ -200,13 +200,13 @@ public sealed class CommandParser
 
     public static int? ResolveCardFromArgs(string raw)
     {
-        // first we try int because int is usually integer
+       
         if (int.TryParse(raw, out var numericId))
         {
             return numericId;
         }
 
-        // then we try guid though only some guid tails map to ids
+        
         if (Regex.IsMatch(raw, "^[0-9a-fA-F-]{36}$") && Guid.TryParse(raw, out var parsedGuid))
         {
             var tail = parsedGuid.ToString("N")[20..];
