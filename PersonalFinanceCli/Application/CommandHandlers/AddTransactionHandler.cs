@@ -1,4 +1,5 @@
 using PersonalFinanceCli.Application.Repositories;
+using PersonalFinanceCli.Application.Services;
 using PersonalFinanceCli.Domain.Entities;
 using PersonalFinanceCli.Domain.ValueObjects;
 using PersonalFinanceCli.Infrastructure.Time;
@@ -12,6 +13,7 @@ public sealed class AddTransactionHandler
 
     private readonly ITransactionRepository _transactionRepository;
     private readonly ICardRepository _cardRepository;
+    private readonly CardResolver _cardResolver;
     private readonly IClock _clock;
 
     public AddTransactionHandler(
@@ -21,6 +23,7 @@ public sealed class AddTransactionHandler
     {
         _transactionRepository = transactionRepository;
         _cardRepository = cardRepository;
+        _cardResolver = new CardResolver(cardRepository);
         _clock = clock;
     }
 
@@ -42,7 +45,7 @@ public sealed class AddTransactionHandler
             throw new InvalidOperationException("Category cannot be empty.");
         }
 
-        var resolvedCardId = EnsureCardSelectedFallback(cardId, transactionType);
+        var resolvedCardId = _cardResolver.ResolveCardIdForTransaction(cardId, transactionType);
         var selectedCard = _cardRepository.GetById(resolvedCardId);
         if (selectedCard is null)
         {
@@ -62,54 +65,9 @@ public sealed class AddTransactionHandler
         return _transactionRepository.Add(transaction);
     }
 
-    public int EnsureCardSelectedFallback(int? cardId, TransactionType transactionType)
-    {
-        if (cardId.HasValue)
-        {
-            var cardById = _cardRepository.GetById(cardId.Value);
-            if (cardById == null)
-            {
-                throw new InvalidOperationException("Card not found.");
-            }
-
-            return cardById.Id;
-        }
-
-        if (transactionType == TransactionType.Expense)
-        {
-            var defaultCardFromStore = _cardRepository.GetDefaultByDataStore();
-            if (defaultCardFromStore != null)
-            {
-                return defaultCardFromStore.Id;
-            }
-
-            var firstCardFromStore = _cardRepository.GetFirst();
-            if (firstCardFromStore != null)
-            {
-                return firstCardFromStore.Id;
-            }
-
-            throw new InvalidOperationException("No cards available.");
-        }
-
-        var defaultCard = _cardRepository.GetDefault();
-        if (defaultCard != null)
-        {
-            return defaultCard.Id;
-        }
-
-        var firstCard = _cardRepository.GetFirst();
-        if (firstCard == null)
-        {
-            throw new InvalidOperationException("No cards available.");
-        }
-
-        return firstCard.Id;
-    }
-
     public int ResolveCardId(int? cardId)
     {
-        return EnsureCardSelectedFallback(cardId, TransactionType.Income);
+        return _cardResolver.ResolveCardIdForTransaction(cardId, TransactionType.Income);
     }
 
     public Card? FindCushionCardLoose()
