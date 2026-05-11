@@ -38,11 +38,12 @@ internal sealed class TestAppContext : IDisposable
         var setDefaultCardHandler = new SetDefaultCardHandler(CardRepository);
         var addTransactionHandler = new AddTransactionHandler(TransactionRepository, CardRepository, Clock);
         var addIncomeHandler = new AddIncomeHandler(addTransactionHandler);
-        var addExpenseHandler = new AddExpenseHandler(TransactionRepository, CardRepository, Clock);
+        var addExpenseHandler = new AddExpenseHandler(addTransactionHandler);
         var setDailyLimitHandler = new SetDailyLimitHandler(LimitRepository, CardRepository, Clock);
         var dailyReportService = new DailyReportService(CardRepository, TransactionRepository, LimitRepository);
         var cushionService = new CushionService(CardRepository);
         var reportPrinter = new ReportPrinter(Console.Out, CardRepository, TransactionRepository, LimitRepository);
+        var wizardOptionCollector = new WizardOptionCollector();
 
         Ui = new ConsoleUi(
             parser,
@@ -59,7 +60,8 @@ internal sealed class TestAppContext : IDisposable
             OnboardingStateRepository,
             Clock,
             Console,
-            cushionService);
+            cushionService,
+            wizardOptionCollector);
     }
 
     public JsonDataStore Store { get; }
@@ -105,7 +107,7 @@ internal sealed class TestAppContext : IDisposable
         }
         catch
         {
-            // ignore test cleanup issues
+           
         }
     }
 }

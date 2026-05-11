@@ -32,21 +32,22 @@ public sealed class ConsoleUi
     private bool _onboardingChecked;
 
     public ConsoleUi(
-        CommandParser parser,
-        AddCardHandler addCardHandler,
-        SetDefaultCardHandler setDefaultCardHandler,
-        AddTransactionHandler addTransactionHandler,
-        AddIncomeHandler addIncomeHandler,
-        AddExpenseHandler addExpenseHandler,
-        SetDailyLimitHandler setDailyLimitHandler,
-        DailyReportService dailyReportService,
-        ReportPrinter reportPrinter,
-        ICardRepository cardRepository,
-        ILimitRepository limitRepository,
-        IOnboardingStateRepository onboardingStateRepository,
-        IClock clock,
-        IConsole console,
-        CushionService cushionService)
+    CommandParser parser,
+    AddCardHandler addCardHandler,
+    SetDefaultCardHandler setDefaultCardHandler,
+    AddTransactionHandler addTransactionHandler,
+    AddIncomeHandler addIncomeHandler,
+    AddExpenseHandler addExpenseHandler,
+    SetDailyLimitHandler setDailyLimitHandler,
+    DailyReportService dailyReportService,
+    ReportPrinter reportPrinter,
+    ICardRepository cardRepository,
+    ILimitRepository limitRepository,
+    IOnboardingStateRepository onboardingStateRepository,
+    IClock clock,
+    IConsole console,
+    CushionService cushionService,
+    WizardOptionCollector wizardOptionCollector)
     {
         _parser = parser;
         _addCardHandler = addCardHandler;
@@ -63,7 +64,7 @@ public sealed class ConsoleUi
         _clock = clock;
         _console = console;
         _cushionService = cushionService;
-        _wizardOptionCollector = new WizardOptionCollector();
+        _wizardOptionCollector = wizardOptionCollector;
     }
 
     public int Execute(string[] args)
