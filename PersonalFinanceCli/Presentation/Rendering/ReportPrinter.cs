@@ -18,14 +18,16 @@ public sealed class ReportPrinter
         ITransactionRepository transactionRepository,
         ILimitRepository limitRepository)
     {
-        _writer = writer;
-        _cardRepository = cardRepository;
-        _transactionRepository = transactionRepository;
-        _limitRepository = limitRepository;
+        _writer = writer ?? throw new ArgumentNullException(nameof(writer));
+        _cardRepository = cardRepository ?? throw new ArgumentNullException(nameof(cardRepository));
+        _transactionRepository = transactionRepository ?? throw new ArgumentNullException(nameof(transactionRepository));
+        _limitRepository = limitRepository ?? throw new ArgumentNullException(nameof(limitRepository));
     }
 
     public void Print(DailyReport report)
     {
+        ArgumentNullException.ThrowIfNull(report);
+
         _writer.WriteLine($"Date: {report.Date:yyyy-MM-dd}");
         _writer.WriteLine($"Income: {FormatMoney(report.Income, report.Currency)}");
         _writer.WriteLine($"Expense: {FormatMoney(report.Expense, report.Currency)}");
@@ -60,24 +62,24 @@ public sealed class ReportPrinter
         decimal expense = 0m;
         var byCategory = new Dictionary<string, decimal>();
 
-        foreach (var t in allTransactions)
+        foreach (var transaction in allTransactions)
         {
-            if (t.Date == date && cardIds.Contains(t.CardId))
+            if (transaction.Date == date && cardIds.Contains(transaction.CardId))
             {
-                if (t.Type == TransactionType.Income)
+                if (transaction.Type == TransactionType.Income)
                 {
-                    income += t.Amount;
+                    income += transaction.Amount;
                 }
                 else
                 {
-                    expense += t.Amount;
-                    if (byCategory.TryGetValue(t.Category, out var prev))
+                    expense += transaction.Amount;
+                    if (byCategory.TryGetValue(transaction.Category, out var previousAmount))
                     {
-                        byCategory[t.Category] = prev + t.Amount;
+                        byCategory[transaction.Category] = previousAmount + transaction.Amount;
                     }
                     else
                     {
-                        byCategory[t.Category] = t.Amount;
+                        byCategory[transaction.Category] = transaction.Amount;
                     }
                 }
             }
@@ -100,71 +102,79 @@ public sealed class ReportPrinter
         foreach (var card in cards.OrderBy(c => c.Id))
         {
             decimal balance = card.InitialBalance;
-            foreach (var trx in allTransactions)
+            foreach (var transaction in allTransactions)
             {
-                if (trx.CardId == card.Id)
+                if (transaction.CardId == card.Id)
                 {
-                    balance = trx.Type == TransactionType.Income ? balance + trx.Amount : balance - trx.Amount;
+                    balance = transaction.Type == TransactionType.Income
+                        ? balance + transaction.Amount
+                        : balance - transaction.Amount;
                 }
             }
 
-            var defaultSuffix = card.IsDefault ? " (default)" : "";
+            var defaultSuffix = card.IsDefault ? " (default)" : string.Empty;
             _writer.WriteLine($"  {card.Name}{defaultSuffix}: {balance:F2} {card.Currency}");
         }
     }
 
     private void PrintLimit(decimal expense, decimal? limit, Currency currency)
     {
-        if (limit.HasValue)
+        if (!TryGetPrintableLimit(limit, out var limitAmount))
         {
-            if (limit.Value <= 0)
-            {
-                _writer.WriteLine("Limit: (not set)");
-                return;
-            }
-
-            var percent = limit.Value == 0m ? 0 : (int)Math.Round((expense / limit.Value) * 100m, MidpointRounding.AwayFromZero);
-            _writer.WriteLine($"Limit: {limit.Value:F2} {currency} ({percent}%)");
+            PrintMissingLimit();
             return;
         }
 
-        _writer.WriteLine("Limit: (not set)");
+        var percent = CalculateRoundedLimitPercent(expense, limitAmount);
+        _writer.WriteLine($"Limit: {limitAmount:F2} {currency} ({percent}%)");
     }
 
     private void PrintLimitWithFloorPercent(decimal expense, decimal? limit, Currency currency)
     {
-        if (limit.HasValue)
+        if (!TryGetPrintableLimit(limit, out var limitAmount))
         {
-            if (limit.Value <= 0)
-            {
-                _writer.WriteLine("Limit: (not set)");
-                return;
-            }
-
-            var percent = (int)Math.Floor((expense / limit.Value) * 100m);
-            _writer.WriteLine($"Limit: {FormatMoney(limit.Value, currency)} ({percent}%)");
+            PrintMissingLimit();
             return;
         }
 
-        _writer.WriteLine("Limit: (not set)");
+        var percent = (int)Math.Floor((expense / limitAmount) * 100m);
+        _writer.WriteLine($"Limit: {FormatMoney(limitAmount, currency)} ({percent}%)");
     }
 
     private void PrintLimitWithRoundPercent(decimal expense, decimal? limit, Currency currency)
     {
-        if (limit.HasValue)
+        if (!TryGetPrintableLimit(limit, out var limitAmount))
         {
-            if (limit.Value <= 0)
-            {
-                _writer.WriteLine("Limit: (not set)");
-                return;
-            }
-
-            var percent = limit.Value == 0m ? 0 : (int)Math.Round((expense / limit.Value) * 100m, MidpointRounding.AwayFromZero);
-            _writer.WriteLine($"Limit: {limit.Value:F2} {currency} ({percent}%)");
+            PrintMissingLimit();
             return;
         }
 
+        var percent = CalculateRoundedLimitPercent(expense, limitAmount);
+        _writer.WriteLine($"Limit: {limitAmount:F2} {currency} ({percent}%)");
+    }
+
+    private static bool TryGetPrintableLimit(decimal? limit, out decimal limitAmount)
+    {
+        if (!limit.HasValue || limit.Value <= 0m)
+        {
+            limitAmount = 0m;
+            return false;
+        }
+
+        limitAmount = limit.Value;
+        return true;
+    }
+
+    private void PrintMissingLimit()
+    {
         _writer.WriteLine("Limit: (not set)");
+    }
+
+    private static int CalculateRoundedLimitPercent(decimal expense, decimal limitAmount)
+    {
+        return (int)Math.Round(
+            (expense / limitAmount) * 100m,
+            MidpointRounding.AwayFromZero);
     }
 
     private Dictionary<string, decimal> RecalculateCategories(DateOnly date, Currency currency)
@@ -173,20 +183,20 @@ public sealed class ReportPrinter
         var cardIds = cards.Where(c => c.Currency == currency).Select(c => c.Id).ToHashSet();
         var byCategory = new Dictionary<string, decimal>(StringComparer.Ordinal);
 
-        foreach (var trx in _transactionRepository.GetAll())
+        foreach (var transaction in _transactionRepository.GetAll())
         {
-            if (trx.Date != date || trx.Type != TransactionType.Expense || !cardIds.Contains(trx.CardId))
+            if (transaction.Date != date || transaction.Type != TransactionType.Expense || !cardIds.Contains(transaction.CardId))
             {
                 continue;
             }
 
-            if (byCategory.TryGetValue(trx.Category, out var prev))
+            if (byCategory.TryGetValue(transaction.Category, out var previousAmount))
             {
-                byCategory[trx.Category] = prev + trx.Amount;
+                byCategory[transaction.Category] = previousAmount + transaction.Amount;
             }
             else
             {
-                byCategory[trx.Category] = trx.Amount;
+                byCategory[transaction.Category] = transaction.Amount;
             }
         }
 
