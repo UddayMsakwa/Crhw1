@@ -166,7 +166,7 @@ public sealed class CommandParser
             else if (option == "--date")
             {
                 i++;
-                date = ParseDateOptionValue(tokens, i);
+                date = ReadDateOptionValue(tokens, i);
             }
             else if (option == "--note")
             {
@@ -254,7 +254,7 @@ public sealed class CommandParser
             if (option == "--date")
             {
                 i++;
-                date = ParseDateOptionValue(tokens, i);
+                date = ReadDateOptionValue(tokens, i);
             }
             else
             {
@@ -267,7 +267,7 @@ public sealed class CommandParser
         return new ReportDayCommand(date);
     }
 
-    private static DateOnly ParseDateOptionValue(IReadOnlyList<string> tokens, int valueIndex)
+    private static DateOnly ReadDateOptionValue(IReadOnlyList<string> tokens, int valueIndex)
     {
         if (valueIndex >= tokens.Count || !DateOnly.TryParse(tokens[valueIndex], out var parsedDate))
         {
