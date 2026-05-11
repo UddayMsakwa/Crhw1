@@ -1,5 +1,6 @@
 using PersonalFinanceCli.Domain.ValueObjects;
 using PersonalFinanceCli.Presentation.Parsing;
+using PersonalFinanceCli.Presentation.Parsing.Commands;
 
 namespace PersonalFinanceCli.Tests;
 

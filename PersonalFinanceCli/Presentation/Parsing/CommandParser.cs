@@ -7,7 +7,6 @@ namespace PersonalFinanceCli.Presentation.Parsing;
 
 public sealed class CommandParser
 {
-    
     private const string Card = "card";
     private const string Expense = "expense";
     private const string Income = "income";
@@ -16,7 +15,6 @@ public sealed class CommandParser
 
     public ParsedCommand Parse(string[] args)
     {
-        
         return Parse(args.ToList());
     }
 
@@ -27,14 +25,13 @@ public sealed class CommandParser
 
     private ParsedCommand Parse(IReadOnlyList<string> tokens)
     {
-        
         if (tokens.Count == 0)
         {
             throw new InvalidOperationException("Command is empty.");
         }
 
         var root = tokens[0].ToLowerInvariant();
-        if (root == Card) 
+        if (root == Card)
         {
             return ParseCard(tokens);
         }
@@ -59,7 +56,6 @@ public sealed class CommandParser
 
     private static ParsedCommand ParseCard(IReadOnlyList<string> tokens)
     {
-        
         if (tokens.Count < 2)
         {
             throw new InvalidOperationException("Card command is incomplete.");
@@ -76,7 +72,6 @@ public sealed class CommandParser
             decimal? initial = null;
             if (tokens.Count >= 5)
             {
-                
                 if (!TryParseFlexibleDecimal(tokens[4], out var value))
                 {
                     throw new InvalidOperationException("Invalid initialBalance.");
@@ -140,9 +135,10 @@ public sealed class CommandParser
             options.Note);
     }
 
-    private static (int? CardId, DateOnly? Date, string? Note) ParseTransactionOptions(IReadOnlyList<string> tokens, int startIndex)
+    private static (int? CardId, DateOnly? Date, string? Note) ParseTransactionOptions(
+        IReadOnlyList<string> tokens,
+        int startIndex)
     {
-        
         int? cardId = null;
         DateOnly? date = null;
         string? note = null;
@@ -170,12 +166,7 @@ public sealed class CommandParser
             else if (option == "--date")
             {
                 i++;
-                if (i >= tokens.Count || !DateOnly.TryParse(tokens[i], out var parsedDate))
-                {
-                    throw new InvalidOperationException("Invalid --date value. Use YYYY-MM-DD.");
-                }
-
-                date = parsedDate;
+                date = ReadDateOptionValue(tokens, i);
             }
             else if (option == "--note")
             {
@@ -189,7 +180,6 @@ public sealed class CommandParser
             }
             else
             {
-               
                 throw new InvalidOperationException($"Unknown option {option}.");
             }
 
@@ -201,13 +191,11 @@ public sealed class CommandParser
 
     public static int? ResolveCardFromArgs(string raw)
     {
-       
         if (int.TryParse(raw, out var numericId))
         {
             return numericId;
         }
 
-        
         if (Regex.IsMatch(raw, "^[0-9a-fA-F-]{36}$") && Guid.TryParse(raw, out var parsedGuid))
         {
             var tail = parsedGuid.ToString("N")[20..];
@@ -266,12 +254,7 @@ public sealed class CommandParser
             if (option == "--date")
             {
                 i++;
-                if (i >= tokens.Count || !DateOnly.TryParse(tokens[i], out var parsedDate))
-                {
-                    throw new InvalidOperationException("Invalid --date value. Use YYYY-MM-DD.");
-                }
-
-                date = parsedDate;
+                date = ReadDateOptionValue(tokens, i);
             }
             else
             {
@@ -284,6 +267,16 @@ public sealed class CommandParser
         return new ReportDayCommand(date);
     }
 
+    private static DateOnly ReadDateOptionValue(IReadOnlyList<string> tokens, int valueIndex)
+    {
+        if (valueIndex >= tokens.Count || !DateOnly.TryParse(tokens[valueIndex], out var parsedDate))
+        {
+            throw new InvalidOperationException("Invalid --date value. Use YYYY-MM-DD.");
+        }
+
+        return parsedDate;
+    }
+
     private static bool TryParseFlexibleDecimal(string raw, out decimal value)
     {
         var normalized = raw.Trim().Replace(',', '.');
@@ -294,4 +287,3 @@ public sealed class CommandParser
             out value);
     }
 }
-

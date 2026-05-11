@@ -12,12 +12,10 @@ public static class Program
 {
     public static int Main(string[] args)
     {
-        
         var console = new SystemConsole();
-        
+
         var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data.json");
 
-       
         var store = new JsonDataStore(dataPath);
         var cardRepository = new JsonCardRepository(store);
         var transactionRepository = new JsonTransactionRepository(store);
@@ -28,15 +26,17 @@ public static class Program
         var parser = new CommandParser();
         var addCardHandler = new AddCardHandler(cardRepository);
         var setDefaultCardHandler = new SetDefaultCardHandler(cardRepository);
+
         var addTransactionHandler = new AddTransactionHandler(transactionRepository, cardRepository, clock);
         var addIncomeHandler = new AddIncomeHandler(addTransactionHandler);
-        var addExpenseHandler = new AddExpenseHandler(transactionRepository, cardRepository, clock);
+        var addExpenseHandler = new AddExpenseHandler(addTransactionHandler);
+
         var setDailyLimitHandler = new SetDailyLimitHandler(limitRepository, cardRepository, clock);
         var dailyReportService = new DailyReportService(cardRepository, transactionRepository, limitRepository);
         var cushionService = new CushionService(cardRepository);
         var reportPrinter = new ReportPrinter(console.Out, cardRepository, transactionRepository, limitRepository);
+        var wizardOptionCollector = new WizardOptionCollector();
 
-        
         var ui = new ConsoleUi(
             parser,
             addCardHandler,
@@ -52,17 +52,16 @@ public static class Program
             onboardingStateRepository,
             clock,
             console,
-            cushionService);
+            cushionService,
+            wizardOptionCollector);
 
-        
         if (args.Length > 0)
         {
             return ui.Execute(args);
         }
 
-    
         ui.RunInteractiveLoop();
-      
+
         return 0;
     }
 }
